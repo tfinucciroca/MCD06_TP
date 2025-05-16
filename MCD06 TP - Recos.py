@@ -1,6 +1,8 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import logging
+import psycopg2
+import os
 
 def main():
     base_path = 'gs://adtech-tp-2025/raw/'
@@ -31,7 +33,8 @@ def main():
                 reco1_list.append({
                     'advertiser_id': advertiser_id,
                     'date': date.strftime('%Y-%m-%d'),
-                    'product_reco': top_product
+                    'product_id': top_product,
+                    'Modelo': 'top_product'
                 })
 
     reco1_df = pd.DataFrame(reco1_list)
@@ -67,21 +70,39 @@ def main():
                 reco2_list.append({
                     'advertiser_id': advertiser_id,
                     'date': date.strftime('%Y-%m-%d'),
-                    'product_reco': top_product
+                    'product_id': top_product,
+                    'Modelo': 'top_ctr'
                 })
 
     reco2_df = pd.DataFrame(reco2_list)
 
-    # Mostrar resultados resumidos en los logs
-    logging.info("Reco 1 - Top Products")
-    logging.info(reco1_df.head())
+    # Unificar y cargar en la base
+    final_df = pd.concat([reco1_df, reco2_df], ignore_index=True)
 
-    logging.info("Reco 2 - Top CTR")
-    logging.info(reco2_df.head())
+    # Conexión a PostgreSQL
+    conn = psycopg2.connect(
+        host=os.getenv("34.9.49.121"),
+        dbname=os.getenv("adtech-tp"),
+        user=os.getenv("postgres"),
+        password=os.getenv("Carozo"),
+        port=5432
+    )
+    cursor = conn.cursor()
 
-    logging.info("✅ Recomendaciones generadas correctamente.")
+    for _, row in final_df.iterrows():
+        cursor.execute("""
+            INSERT INTO recommendations (advertiser_id, date, "Modelo", product_id)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (advertiser_id, date, "Modelo") DO UPDATE
+            SET product_id = EXCLUDED.product_id
+        """, (row['advertiser_id'], row['date'], row['Modelo'], row['product_id']))
 
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-# Para correrlo manualmente si querés probarlo fuera de Airflow
+    logging.info("✅ Recomendaciones generadas y guardadas en la base de datos.")
+
+# Para correrlo manualmente
 if __name__ == "__main__":
     main()
