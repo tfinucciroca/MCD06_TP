@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import psycopg2
 import os
@@ -78,6 +78,9 @@ def main():
 
     # Unificar y cargar en la base
     final_df = pd.concat([reco1_df, reco2_df], ignore_index=True)
+    final_df['date'] = pd.to_datetime(final_df['date'])
+    hoy = pd.to_datetime(datetime.now(timezone.utc).date())
+    final_df = final_df[final_df['date'] == hoy].reset_index(drop=True)
 
     # Conexión a PostgreSQL
     conn = psycopg2.connect(
@@ -101,7 +104,7 @@ def main():
     cursor.close()
     conn.close()
 
-    logging.info("✅ Recomendaciones generadas y guardadas en la base de datos.")
+    logging.info("Recomendaciones generadas y guardadas en la base de datos.")
 
 # Para correrlo manualmente
 if __name__ == "__main__":
