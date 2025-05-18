@@ -8,9 +8,9 @@ def main():
     base_path = 'gs://adtech-tp-2025/raw/'
 
     # Leer archivos desde Cloud Storage
-    advertiser_ids_df = pd.read_csv(base_path + 'advertiser_ids.csv', storage_options={"token": "cloud"})
-    product_views_df = pd.read_csv(base_path + 'product_views.csv', storage_options={"token": "cloud"})
-    ads_views_df = pd.read_csv(base_path + 'ads_views.csv', storage_options={"token": "cloud"})
+    advertiser_ids_df = pd.read_csv(base_path + 'advertiser_ids.csv')
+    product_views_df = pd.read_csv(base_path + 'product_views.csv')
+    ads_views_df = pd.read_csv(base_path + 'ads_views.csv')
 
     # Reco 1 - Top Product
     product_views_df['date'] = pd.to_datetime(product_views_df['date'])
